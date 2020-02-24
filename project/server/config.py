@@ -1,9 +1,13 @@
 # project/server/config.py
 
 import os
+
+from urllib.parse import quote_plus
+
 basedir = os.path.abspath(os.path.dirname(__file__))
-postgres_local_base = 'postgresql://postgres:@localhost/'
-database_name = 'something'
+postgres_local_base = 'postgresql://postgres:%s@localhost:15243/' % quote_plus('P@ssw0rd12345')
+
+database_name = 'flask_jwt_auth'
 
 
 class BaseConfig:
