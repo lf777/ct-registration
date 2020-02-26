@@ -1,18 +1,21 @@
 # project/server/config.py
 
 import os
-
 from urllib.parse import quote_plus
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-postgres_local_base = 'postgresql://postgres:%s@localhost:15243/' % quote_plus('P@ssw0rd12345')
+DB_HOST = 'localhost'
+DB_PORT = '15243'
+DB_PASSWORD = 'P@ssw0rd12345'
+DB_NAME = 'contacttracinglogin'
 
-database_name = 'flask_jwt_auth'
+basedir = os.path.abspath(os.path.dirname(__file__))
+postgres_local_base = 'postgresql://postgres:%s@%s:%s/' % (quote_plus(DB_PASSWORD), DB_HOST, DB_PORT)
+database_name = DB_NAME
 
 
 class BaseConfig:
     """Base configuration."""
-    #SECRET_KEY = 'my_precious'
+    # SECRET_KEY = 'my_precious'
     SECRET_KEY = os.getenv('SECRET_KEY', 'my_precious')
     DEBUG = False
     BCRYPT_LOG_ROUNDS = 13
@@ -24,7 +27,6 @@ class DevelopmentConfig(BaseConfig):
     DEBUG = True
     BCRYPT_LOG_ROUNDS = 4
     SQLALCHEMY_DATABASE_URI = postgres_local_base + database_name
-
 
 
 class TestingConfig(BaseConfig):
