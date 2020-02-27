@@ -20,14 +20,14 @@ SMS_URL = 'http://localhost:5002/sms'
 CONTACTTRACE_URL = 'http://localhost:5001/contacttrace'
 
 
-def has_valid_token():
+def check_valid_token():
     auth_header = request.headers.get('Authorization')
     if auth_header:
         try:
             auth_token = auth_header.split(" ")[1]
         except IndexError:
             print('check valid token: invalid auth_token')
-            return False,
+            return False, None
     else:
         auth_token = ''
     if auth_token:
@@ -36,12 +36,12 @@ def has_valid_token():
             user = User.query.filter_by(id=resp).first()
             if user is None:
                 print('check valid token: user not found')
-                return False,
+                return False, None
             return True, user
         print('check valid token: invalid token')
-        return False,
+        return False, None
     else:
-        return False,
+        return False, None
 
 
 class RegisterAPI(MethodView):
@@ -103,6 +103,7 @@ class RegisterAPI(MethodView):
                     'message': 'Successfully registered.',
                     'authToken': auth_token.decode()
                 }
+                print('res1: %s' % responseObject)
                 return make_response(jsonify(responseObject)), 201
             except Exception as e:
                 responseObject = {
@@ -126,6 +127,7 @@ class RegisterAPI(MethodView):
                 'message': msg,
                 'authToken': auth_token.decode()
             }
+            print('res2: %s' % responseObject)
             return make_response(jsonify(responseObject)), 202
 
 
@@ -274,42 +276,12 @@ auth_blueprint.add_url_rule(
 
 class DeviceAPI(MethodView):
     def get(self):
-        auth_header = request.headers.get('Authorization')
-        if auth_header:
-            try:
-                auth_token = auth_header.split(" ")[1]
-            except IndexError:
-                responseObject = {
-                    'message': 'Bearer token malformed.'
-                }
-                return make_response(jsonify(responseObject)), 401
-        else:
-            auth_token = ''
-        if auth_token:
-            resp = User.decode_auth_token(auth_token)
-            if not isinstance(resp, str):
-                user = User.query.filter_by(id=resp).first()
+        is_valid_token, user = check_valid_token()
+        if not is_valid_token:
+            return make_response(jsonify({'message': 'token issue'})), 401
 
-                if user is None:
-                    msg = 'user not found / invalid token'
-                    print('msg: %s' % msg)
-                    return make_response(jsonify(msg)), 401
-
-                # print('going to redirect')
-                # res = redirect(DEVICE_URL)
-                res = requests.get(DEVICE_URL)
-                return make_response(jsonify(res.json())), 201
-
-            responseObject = {
-                'message': resp
-            }
-            return make_response(jsonify(responseObject)), 401
-        else:
-            responseObject = {
-                'message': 'Provide a valid auth token.'
-            }
-            return make_response(jsonify(responseObject)), 401
-
+        res = requests.get(DEVICE_URL)
+        return make_response(jsonify(res.json())), 201
 
 device_view = DeviceAPI.as_view('device_api')
 auth_blueprint.add_url_rule(
@@ -398,16 +370,18 @@ class DetectionAPIold(MethodView):
 
 class DetectionAPI(MethodView):
     def put(self):
-        is_valid_token, user = has_valid_token()
+        is_valid_token, user = check_valid_token()
         if not is_valid_token:
             return make_response(jsonify({'message': 'token issue'})), 401
 
-        detection_info = request.json
+        # detection_info = request.json
+        detection_info = json.loads(request.data)
         detection_info['device_id'] = user.device_id
         print('detection_info: %s' % detection_info)
         res = requests.put(DETECTION_URL,
                            json=detection_info)
         return make_response(jsonify({'message': 'put detection OK'})), 201
+
 
 detection_view = DetectionAPI.as_view('detection_api')
 auth_blueprint.add_url_rule(
@@ -419,38 +393,13 @@ auth_blueprint.add_url_rule(
 
 class ContacttraceAPI(MethodView):
     def get(self, device_id):
-        auth_header = request.headers.get('Authorization')
-        if auth_header:
-            try:
-                # print( 'auth_header: %s' % auth_header)
-                auth_token = auth_header.split(" ")[1]
-            except IndexError:
-                responseObject = {
-                    'message': 'Bearer token malformed.'
-                }
-                return make_response(jsonify(responseObject)), 401
-        else:
-            auth_token = ''
-        if auth_token:
-            resp = User.decode_auth_token(auth_token)
-            if not isinstance(resp, str):
-                user = User.query.filter_by(id=resp).first()
-                if user is None:
-                    return make_response(jsonify({'message': 'put0 KO. user not found'})), 401
+        is_valid_token, user = check_valid_token()
+        if not is_valid_token:
+            return make_response(jsonify({'message': 'token issue'})), 401
 
-                data = request.args
-                res = requests.get('/'.join([CONTACTTRACE_URL, device_id]), params=data)
-                return make_response(jsonify(res.json())), res.status_code
-
-            responseObject = {
-                'message': resp
-            }
-            return make_response(jsonify(responseObject)), 401
-        else:
-            responseObject = {
-                'message': 'Provide a valid auth token.'
-            }
-            return make_response(jsonify(responseObject)), 401
+        data = request.args
+        res = requests.get('/'.join([CONTACTTRACE_URL, device_id]), params=data)
+        return make_response(jsonify(res.json())), res.status_code
 
 
 contracttrace_view = ContacttraceAPI.as_view('contacttrace_api')

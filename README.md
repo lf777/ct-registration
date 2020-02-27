@@ -1,5 +1,12 @@
-# Flask JWT Auth
+### Requirements
+1. Postgresql
 
+### Quick Start
+Edit config.py file.
+
+<!--
+
+# Flask JWT Auth
 [![Build Status](https://travis-ci.org/realpython/flask-jwt-auth.svg?branch=master)](https://travis-ci.org/realpython/flask-jwt-auth)
 
 ## Quick Start
@@ -69,3 +76,4 @@ With coverage:
 ```sh
 $ python manage.py cov
 ```
+-->
